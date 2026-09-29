@@ -1,0 +1,139 @@
+# Python quality toolchain: merge these [tool.*] sections into pyproject.toml.
+# Package name is `app` (source at src/app/); replace it for your project.
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+src = ["src", "tests"]
+extend-exclude = ["build", "dist", ".venv"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",     # pycodestyle
+  "F",          # pyflakes
+  "I",          # isort
+  "B",          # flake8-bugbear
+  "C90",        # mccabe cyclomatic complexity
+  "SIM",        # flake8-simplify
+  "PL",         # pylint-derived rules
+  "RUF",        # ruff-specific rules
+  "S",          # flake8-bandit (security approximation)
+  "T20",        # flake8-print (debug / AI tell)
+  "ERA",        # commented-out dead code
+  "PTH",        # flake8-use-pathlib
+  "RET",        # flake8-return
+  "PIE",        # flake8-pie
+  "ARG",        # unused arguments
+  "TID",        # import discipline
+  "ANN",        # type-annotation completeness
+]
+ignore = [
+  # Line width follows the formatter's best-effort policy, so >120 is not a hard error.
+  "E501",
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 20
+
+[tool.ruff.lint.pylint]
+max-args = 8
+max-statements = 50
+max-branches = 12
+max-returns = 6
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+
+[tool.ruff.lint.per-file-ignores]
+# Tests are relaxed: allow assert, magic values, missing annotations
+"tests/**" = ["S101", "PLR2004", "ANN"]
+# The self-maintained CRAP script is tool code; allow prints
+"scripts/**" = ["T20"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["src", "tests"]
+exclude = ["build/", "dist/"]
+pretty = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+# Tests may omit per-function annotations
+module = ["tests.*"]
+disallow_untyped_defs = false
+
+[tool.importlinter]
+root_package = "app"
+# Allow forbidden contracts to name external packages (e.g. flask)
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "DDD layers: interfaces → application → domain, reverse forbidden"
+type = "layers"
+layers = ["app.interfaces", "app.application", "app.domain"]
+
+[[tool.importlinter.contracts]]
+name = "Dependency inversion: inner layers must not import infrastructure"
+type = "forbidden"
+source_modules = ["app.interfaces", "app.application", "app.domain"]
+forbidden_modules = ["app.infrastructure"]
+
+[[tool.importlinter.contracts]]
+name = "Domain/application must not depend on the web framework"
+type = "forbidden"
+source_modules = ["app.domain", "app.application"]
+forbidden_modules = ["flask", "werkzeug"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+markers = [
+  "e2e: end-to-end tests over real HTTP (excluded by default)",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["app"]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv", "build", "dist"]
+
+[tool.deptry]
+extend_exclude = ["build", "dist"]
+
+# Final shape after Phase 3; see references/python.md for the phased variants.
+[tool.poe.tasks]
+lint = "ruff check ."
+lint_fix = "ruff check . --fix"
+format = "ruff format ."
+format_check = "ruff format --check ."
+typecheck = "mypy"
+
+test = "pytest -m \"not e2e\""
+test_all = "pytest"
+e2e = "pytest -m e2e"
+test_cov = "pytest -m \"not e2e\" --cov=app --cov-report=term-missing --cov-report=lcov:coverage/lcov.info --cov-report=json:coverage.json"
+
+crap_report = "python scripts/crap.py --source src/app"
+crap_gate = "python scripts/crap.py --source src/app --fail-above 6 --max-file-lines 400 --max-class-lines 300 --max-public-methods 20"
+
+arch = "lint-imports"
+sec = "bandit -c pyproject.toml -r src/app"
+audit_runtime = "uv export --no-dev --frozen --output-file requirements-runtime.txt && pip-audit -r requirements-runtime.txt"
+audit_dev = "pip-audit"
+deps = "deptry ."
+
+verify = ["format_check", "lint", "typecheck", "test"]
+verify_full_report = ["verify", "test_cov", "crap_report"]
+verify_full_gate = ["verify", "test_cov", "crap_gate", "arch", "sec", "audit_runtime", "deps"]
+
+prepush = "verify_full_gate"

@@ -1,0 +1,6 @@
+{
+    "coverage": "coverage/lcov.info",
+    "baseline": ".agents/crap-baseline.json",
+    "report": "crap-report/crap.json",
+    "threshold": 6
+}

@@ -1,0 +1,225 @@
+<!-- Java quality toolchain: merge this block into pom.xml <build><plugins>.
+     Plugins managed by spring-boot-starter-parent (compiler/surefire/failsafe/
+     jacoco/resources) need no <version>; unmanaged plugin versions must be locked
+     against Maven Central. -->
+<plugins>
+
+  <!-- Formatting (the Prettier equivalent) -->
+  <plugin>
+    <groupId>com.diffplug.spotless</groupId>
+    <artifactId>spotless-maven-plugin</artifactId>
+    <version>8.10.3</version>
+    <configuration>
+      <java>
+        <googleJavaFormat/>
+        <removeUnusedImports/>
+        <trimTrailingWhitespace/>
+        <endWithNewline/>
+      </java>
+    </configuration>
+    <executions>
+      <execution>
+        <id>spotless-check</id>
+        <phase>verify</phase>
+        <goals><goal>check</goal></goals>
+      </execution>
+    </executions>
+  </plugin>
+
+  <!-- Style / naming / size -->
+  <plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-checkstyle-plugin</artifactId>
+    <version><!-- lock on Maven Central --></version>
+    <configuration>
+      <configLocation>config/checkstyle/checkstyle.xml</configLocation>
+      <consoleOutput>true</consoleOutput>
+      <failOnViolation>true</failOnViolation>
+      <violationSeverity>warning</violationSeverity>
+      <includeTestSourceDirectory>true</includeTestSourceDirectory>
+    </configuration>
+    <dependencies>
+      <!-- Override the plugin's bundled checkstyle with the locked version -->
+      <dependency>
+        <groupId>com.puppycrawl.tools</groupId>
+        <artifactId>checkstyle</artifactId>
+        <version>14.3.0</version>
+      </dependency>
+    </dependencies>
+    <executions>
+      <execution>
+        <id>checkstyle-check</id>
+        <phase>verify</phase>
+        <goals><goal>check</goal></goals>
+      </execution>
+    </executions>
+  </plugin>
+
+  <!-- Smells / complexity / duplication -->
+  <plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-pmd-plugin</artifactId>
+    <version><!-- lock on Maven Central --></version>
+    <configuration>
+      <rulesets>
+        <ruleset>config/pmd/ruleset.xml</ruleset>
+      </rulesets>
+      <failOnViolation>true</failOnViolation>
+      <printFailingErrors>true</printFailingErrors>
+      <includeTests>false</includeTests>
+      <!-- CPD: copy-paste detection -->
+      <cpd>
+        <minimumTokens>100</minimumTokens>
+        <ignoreIdentifiers>true</ignoreIdentifiers>
+        <ignoreLiterals>true</ignoreLiterals>
+      </cpd>
+    </configuration>
+    <executions>
+      <execution>
+        <id>pmd-check</id>
+        <phase>verify</phase>
+        <goals>
+          <goal>check</goal>
+          <goal>cpd-check</goal>
+        </goals>
+      </execution>
+    </executions>
+  </plugin>
+
+  <!-- Defects + security white-box -->
+  <plugin>
+    <groupId>com.github.spotbugs</groupId>
+    <artifactId>spotbugs-maven-plugin</artifactId>
+    <version><!-- lock on Maven Central --></version>
+    <configuration>
+      <effort>Max</effort>
+      <threshold>Medium</threshold>
+      <failOnError>true</failOnError>
+      <excludeFilterFile>config/spotbugs/exclude.xml</excludeFilterFile>
+    </configuration>
+    <dependencies>
+      <dependency>
+        <groupId>com.h3xstream.findsecbugs</groupId>
+        <artifactId>findsecbugs-plugin</artifactId>
+        <version>1.14.0</version>
+      </dependency>
+    </dependencies>
+    <executions>
+      <execution>
+        <id>spotbugs-check</id>
+        <phase>verify</phase>
+        <goals><goal>check</goal></goals>
+      </execution>
+    </executions>
+  </plugin>
+
+  <!-- Error Prone (compile-time; enable once the baseline is clean; not on pure JDK 8) -->
+  <plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-compiler-plugin</artifactId>
+    <configuration>
+      <release>${maven.compiler.release}</release>
+      <compilerArgs>
+        <arg>-XDcompilePolicy=simple</arg>
+        <arg>-Xplugin:ErrorProne</arg>
+        <!-- These --add-exports follow the build JDK version -->
+        <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</arg>
+        <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</arg>
+        <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</arg>
+        <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</arg>
+        <arg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</arg>
+      </compilerArgs>
+      <annotationProcessorPaths>
+        <path>
+          <groupId>com.google.errorprone</groupId>
+          <artifactId>error_prone_core</artifactId>
+          <version>2.50.0</version>
+        </path>
+      </annotationProcessorPaths>
+    </configuration>
+  </plugin>
+
+  <!-- Coverage (feeds CRAP) -->
+  <plugin>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <executions>
+      <execution>
+        <id>prepare-agent</id>
+        <goals><goal>prepare-agent</goal></goals>
+      </execution>
+      <execution>
+        <id>report</id>
+        <phase>verify</phase>
+        <goals><goal>report</goal></goals>
+        <configuration>
+          <!-- CRAP reads XML; CSV/HTML are for humans -->
+          <formats>
+            <format>XML</format>
+            <format>CSV</format>
+            <format>HTML</format>
+          </formats>
+        </configuration>
+      </execution>
+    </executions>
+  </plugin>
+
+  <!-- CRAP gate (single-file source launch; not packaged) -->
+  <plugin>
+    <groupId>org.codehaus.mojo</groupId>
+    <artifactId>exec-maven-plugin</artifactId>
+    <version><!-- lock on Maven Central --></version>
+    <executions>
+      <execution>
+        <id>crap-gate</id>
+        <phase>verify</phase>
+        <goals><goal>exec</goal></goals>
+        <configuration>
+          <executable>java</executable>
+          <arguments>
+            <argument>${project.basedir}/tools/crap/Crap.java</argument>
+            <argument>${project.build.directory}/site/jacoco/jacoco.xml</argument>
+            <argument>${crap.threshold}</argument>
+            <argument>${crap.fail}</argument>
+          </arguments>
+        </configuration>
+      </execution>
+    </executions>
+  </plugin>
+
+  <!-- Security / dependency hygiene -->
+  <plugin>
+    <groupId>org.owasp</groupId>
+    <artifactId>dependency-check-maven</artifactId>
+    <version><!-- lock on Maven Central --></version>
+    <configuration>
+      <failBuildOnCVSS>7</failBuildOnCVSS>
+    </configuration>
+    <executions>
+      <execution>
+        <id>owasp-check</id>
+        <phase>verify</phase>
+        <goals><goal>check</goal></goals>
+      </execution>
+    </executions>
+  </plugin>
+
+  <plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-dependency-plugin</artifactId>
+    <executions>
+      <execution>
+        <id>analyze</id>
+        <phase>verify</phase>
+        <goals><goal>analyze-only</goal></goals>
+        <configuration>
+          <failOnWarning>true</failOnWarning>
+          <!-- undeclared (used-undeclared) and unused (unused-declared) dependencies -->
+          <ignoredUnusedDeclaredDependencies/>
+          <ignoredNonTestScopedDependencies/>
+        </configuration>
+      </execution>
+    </executions>
+  </plugin>
+
+</plugins>

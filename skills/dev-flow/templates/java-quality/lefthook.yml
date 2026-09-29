@@ -1,0 +1,15 @@
+pre-commit:
+  parallel: true
+  commands:
+    spotless:
+      glob: "*.java"
+      run: ./mvnw -q spotless:apply
+    # Optional: hand changed java files to Checkstyle if the plugin supports file filtering
+    # checkstyle:
+    #   glob: "*.java"
+    #   run: ./mvnw -q checkstyle:check -Dcheckstyle.includes={staged_files}
+
+pre-push:
+  commands:
+    gate:
+      run: ./mvnw -q -Dcrap.fail=true verify

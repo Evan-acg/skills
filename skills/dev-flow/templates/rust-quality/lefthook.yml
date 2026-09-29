@@ -1,0 +1,25 @@
+pre-commit:
+  parallel: true
+  commands:
+    fmt:
+      glob: "*.rs"
+      run: cargo fmt --all
+      stage_fixed: true
+    clippy:
+      glob: "*.rs"
+      run: cargo clippy --all-targets --all-features -- -D warnings
+    typos:
+      run: typos
+
+pre-push:
+  commands:
+    fmt-check: { run: cargo fmt --all --check }
+    lint:      { run: cargo clippy --all-targets --all-features -- -D warnings }
+    taplo:     { run: taplo fmt --check }
+    typos:     { run: typos }
+    test:      { run: cargo nextest run --all-features }
+    doctest:   { run: cargo test --doc --all-features }
+    # Phase 1: report-only. Phase 2: add --fail-under-lines 60. Phase 3: 80.
+    coverage:  { run: cargo llvm-cov --all-features --lcov }
+    deny:      { run: cargo deny check }
+    machete:   { run: cargo machete . }

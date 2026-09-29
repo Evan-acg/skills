@@ -1,0 +1,35 @@
+# Layer enforcement is two-locked: the compile-time crate boundary (reverse
+# dependencies fail to build) plus cargo-deny `bans.wrappers` (who may depend on whom).
+
+[advisories]
+version = 2
+yanked = "deny"
+ignore = []          # every ignore must state a reason and an expiry
+
+[licenses]
+version = 2
+allow = [
+  "MIT",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "Zlib",
+]
+# GPL / LGPL / AGPL are not allow-listed → denied by default, require explicit review
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+# Layer order: domain may only be depended on by app / features;
+# shared may only be depended on by the upper layers and domain.
+deny = [
+  { name = "myproject-domain", wrappers = ["myproject-app", "myproject-features"] },
+  { name = "myproject-shared", wrappers = ["myproject-app", "myproject-features", "myproject-domain"] },
+]
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"

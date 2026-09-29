@@ -1,0 +1,5 @@
+target/
+coverage/
+crap-report/
+*.class
+.mvn/wrapper/maven-wrapper.jar

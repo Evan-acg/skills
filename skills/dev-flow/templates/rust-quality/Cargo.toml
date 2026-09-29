@@ -1,0 +1,41 @@
+[workspace]
+members = ["crates/*"]
+resolver = "3"
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.85"
+license = "MIT OR Apache-2.0"
+
+[workspace.dependencies]
+# Single version source; members reference with `dep.workspace = true`
+thiserror = "2"
+serde = { version = "1", features = ["derive"] }
+tracing = "0.1"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+# For library projects, consider: missing_docs = "warn"
+
+[workspace.lints.clippy]
+# Baseline groups (negative priority so single rules below can override)
+all = { level = "deny", priority = -1 }
+correctness = "deny"
+suspicious = "deny"
+style = "warn"
+complexity = "warn"
+perf = "warn"
+
+# Size / complexity gates (see clippy.toml for thresholds)
+cognitive_complexity = "warn"   # nursery; default 25, this project tightens to 20
+too_many_lines = "warn"         # pedantic; default 100
+too_many_arguments = "warn"     # complexity; default 7
+
+# Selected pedantic rules (not the whole group, to avoid noise)
+module_name_repetitions = "warn"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+
+# Member crates inherit with:
+# [lints]
+# workspace = true

@@ -1,0 +1,113 @@
+name: quality-gates
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  coverage-and-crap:
+    if: github.event_name != 'pull_request' || github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - name: Full gates before merge
+        if: github.event_name == 'pull_request'
+        run: npm run test:coverage
+      - name: Incremental gates after merge or manual run
+        if: github.event_name != 'pull_request'
+        env:
+          TEST_BASE: ${{ github.event.before || 'HEAD^' }}
+        run: npm run typecheck && npm run i18n:check && npm run test:changed:coverage -- "$TEST_BASE"
+      - name: CRAP check for changed production logic before merge
+        if: github.event_name == 'pull_request'
+        env:
+          CRAP_BASE: ${{ github.event.pull_request.base.sha }}
+        run: npm run crap:check:changed -- --base "$CRAP_BASE"
+      - name: CRAP check for changed production logic after merge or manual run
+        if: github.event_name != 'pull_request'
+        env:
+          CRAP_BASE: ${{ github.event.before || 'HEAD^' }}
+        run: npm run crap:check:changed -- --base "$CRAP_BASE"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.run_id }}
+          path: coverage
+          if-no-files-found: error
+          retention-days: 14
+
+  mutation:
+    if: github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Restore full-run incremental result
+        uses: actions/cache/restore@v4
+        with:
+          path: mutation-report/stryker-incremental-${{ matrix.shard }}.json
+          key: mutation-${{ runner.os }}-${{ matrix.shard }}-${{ hashFiles('package-lock.json', 'stryker.config.cjs', 'vitest.config.js', '.nvmrc', 'scripts/quality/mutation.mjs') }}
+          restore-keys: |
+            mutation-${{ runner.os }}-${{ matrix.shard }}-${{ hashFiles('package-lock.json', 'stryker.config.cjs', 'vitest.config.js', '.nvmrc', 'scripts/quality/mutation.mjs') }}-
+      - name: Install dependencies
+        run: npm ci
+      - name: Run full mutation after merged pull request
+        env:
+          STRYKER_BREAK: "0"
+        run: npm run mutation -- --shard-index "${{ matrix.shard }}" --shard-total 16
+      - name: Save full-run incremental result
+        if: always() && !cancelled()
+        uses: actions/cache/save@v4
+        with:
+          path: mutation-report/stryker-incremental-${{ matrix.shard }}.json
+          key: mutation-${{ runner.os }}-${{ matrix.shard }}-${{ hashFiles('package-lock.json', 'stryker.config.cjs', 'vitest.config.js', '.nvmrc', 'scripts/quality/mutation.mjs') }}-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-${{ github.run_id }}-shard-${{ matrix.shard }}
+          path: mutation-report
+          if-no-files-found: error
+          retention-days: 14
+
+  mutation-aggregate:
+    needs: mutation
+    if: always() && github.event_name == 'pull_request' && github.event.action == 'closed' && github.event.pull_request.merged == true && needs.mutation.result != 'cancelled'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: mutation-${{ github.run_id }}-shard-*
+          path: mutation-reports
+          merge-multiple: false
+      - name: Aggregate and enforce mutation score
+        env:
+          STRYKER_BREAK: ${{ vars.STRYKER_BREAK || '60' }}
+        run: npm run mutation:aggregate -- --dir mutation-reports --expected 16 --output mutation-aggregate/mutation-summary.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: mutation-${{ github.run_id }}-aggregate
+          path: mutation-aggregate
+          if-no-files-found: error
+          retention-days: 14

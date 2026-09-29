@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<FindBugsFilter>
+  <!-- Exclude generated code and test fixtures as needed -->
+</FindBugsFilter>

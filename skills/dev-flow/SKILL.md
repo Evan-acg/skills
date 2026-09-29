@@ -1,0 +1,218 @@
+---
+name: dev-flow
+description: Use when initializing or synchronizing a project's AI development workflow, generating or modifying product code, creating files, refactoring modules, or changing frontend UI; enforce discovery, responsibility boundaries, SOLID checks, design-quality and over-engineering review (smells, pattern fit), one-way data flow, structure review, and scope-based verification.
+---
+
+# Dev Flow
+
+Use this workflow for product code. Project instructions remain authoritative for repository-specific paths, commands, domain language, and architectural constraints.
+
+Project companion documents are configuration, not a second copy of this workflow. Keep them limited to repository facts, local paths, commands, domain terms, architecture boundaries, and delivery constraints. Keep discovery, design, SOLID, design-quality, framework, quality-gate, and scope-verification rules here or in the references below.
+
+## Terms
+
+- **Phase** — a point in the verification lifecycle: during implementation, review checkpoint, final checkpoint, or after commit hooks. The four phases are stack-agnostic and shared by every stack.
+- **Focused check** — the smallest deterministic command that can fail on the current change (an affected unit test, typecheck, lint, or formatter run). It is run while the change is in flight.
+- **Gate** — a full-project, thresholded command run at the final checkpoint. It fails when a metric or policy is violated.
+- **Scope trigger** — a characteristic of a change (a route or template touched, a dependency manifest touched) that adds a specific check to a phase. A scope trigger is a condition, not a phase.
+- **Reference** — a stack-specific rule file under `references/`, loaded on demand when a change touches that stack.
+- **Companion** — the project's own workflow document. It holds only repository-specific paths, commands, thresholds, domain language, architecture boundaries, and delivery constraints.
+
+## Initialization mode
+
+When the user explicitly asks to initialize, set up, or bootstrap this workflow for a project, run this mode before the normal development workflow. A typical request is: `Use dev-flow to initialize this project.`
+
+1. Discover the project before creating guidance:
+   - inspect the repository root, package manager, language and framework, source layout, existing `AGENTS.md` or equivalent instructions, architecture and design documents, test commands, and CI configuration;
+   - search for existing workflow or agent guidance before adding a new document;
+   - record detected facts, contradictions, missing information, and files that must not be overwritten.
+2. Design the smallest project-specific setup:
+   - preserve existing instructions and merge only missing workflow requirements;
+   - create or update the root `AGENTS.md` with the workflow trigger, required pre-edit discovery, applicable framework references, and verification expectations;
+   - create or update the project-specific workflow companion at the path declared by the repository's `AGENTS.md` with repository-specific paths, commands, architecture boundaries, domain terminology, and delivery constraints;
+   - add framework-specific guidance only when the framework is detected and the corresponding reference is applicable;
+   - do not invent architecture, commands, domain rules, or CI requirements that cannot be established from the repository.
+3. Apply the setup only after the initialization plan and file responsibilities are clear. Do not modify product source, package scripts, or CI as part of the baseline setup unless the user explicitly includes them.
+4. Review the complete initialization diff, verify that the setup is idempotent, and run the repository's relevant documentation or configuration checks. Report created, updated, preserved, unknown, and unverified items.
+
+Running initialization again must converge on the same setup: never duplicate instructions, overwrite user-authored guidance, or create speculative documents. If an existing rule conflicts with this workflow, surface the conflict for a decision instead of silently replacing it.
+
+## Synchronization mode
+
+When the user explicitly asks to synchronize the global workflow into the current project, run this mode before the normal development workflow. Read `references/synchronization.md` for the source, target, merge, conflict, and reporting contract.
+
+The synchronization target is the project's workflow guidance, not product code. Preserve project-specific paths, commands, domain language, architecture boundaries, and delivery constraints; update only the workflow portions that should follow this skill. Do not overwrite user-authored guidance or copy the complete global workflow into a project companion.
+
+## Project companion boundary
+
+- Read the project companion when the task needs repository-specific facts; do not copy the general workflow into it.
+- Put a rule in the companion only when it depends on this repository's paths, scripts, domain language, architecture, environment, or delivery process.
+- If a local rule is broadly reusable, move it to this skill or an applicable reference instead of preserving duplicate wording in the project.
+
+## References
+
+- `references/quality-gates.md` — the gate contract used in §7. The enforced gate is CRAP; mutation testing and CI are optional and deferred.
+- `references/vue.md` — Vue 3, composables, Pinia, TypeScript frontends, and Vitest specifics.
+- `references/java.md` — Java and Spring specifics.
+- `references/python.md` — Python, Flask, uv, Ruff, mypy, and pytest specifics.
+- `references/rust.md` — Rust, Cargo workspaces, clippy, rustfmt, and nextest specifics.
+- `references/design-quality.md` — smell taxonomy, design-pattern guardrails, and AI-specific smells used in §2, §3, and §6.
+- `references/synchronization.md` — the contract for synchronizing this workflow into a project's guidance.
+
+## 1. Discover before designing
+
+- Read the applicable repository instructions, architecture documents, design rules, glossary, and ADRs.
+- Search for existing implementations, types, APIs, state modules, tests, and public entry points before creating a file or abstraction.
+- Identify the narrowest owner for the change and record contradictions between the request, code, and documented architecture.
+- Treat a prototype or experiment as temporary unless the project explicitly defines it as production code.
+
+## 2. Design before writing
+
+For new modules, cross-file changes, and UI changes, state a short plan before creating files. Name:
+
+- the responsibility of every new or changed file;
+- the direction of data and dependency flow;
+- the public interface between modules or components;
+- the smallest verification set that can prove the change;
+- when introducing a design pattern, the variation it absorbs, the simpler alternative, and why that alternative is insufficient.
+
+Use one primary reason to change as the default module boundary. Prefer a deep module with a small, explicit interface over a large file mixing rendering, state, requests, persistence, and domain decisions. Do not create a generic helper, shared module, or abstraction before a concrete reuse case exists.
+
+## 3. Design quality guardrails
+
+Apply SOLID as a design check, not as a reason to add layers:
+
+- **Single responsibility**: each file, component, composable, and store has one primary reason to change.
+- **Open/closed**: add behavior at an owning feature boundary instead of scattering conditionals or editing unrelated consumers.
+- **Liskov substitution**: implementations and variants honor the same input, output, and error contracts without surprising exceptions.
+- **Interface segregation**: expose small module interfaces, component props and events, composable returns, and store actions.
+- **Dependency inversion**: high-level code depends on feature interfaces rather than transport details or sibling internals.
+
+Look for god modules, duplicated sources of truth, hidden mutation, and shotgun changes: fix the boundary that caused the smell instead of masking it with indirection. Read `references/design-quality.md` for the full smell taxonomy, design-pattern guardrails, and AI-specific smells.
+
+## 4. Implement the smallest coherent slice
+
+- Keep each module inside its owning layer and expose only the interface its callers need.
+- Keep transport and data contracts separate from UI state and presentation decisions.
+- Keep templates declarative and business decisions out of pure presentation components.
+- Prefer explicit inputs, outputs, and dependencies over ambient state, hidden mutation, and duplicated state.
+- When changing an existing large file, list the responsibilities touched and intentionally left alone. Extract the touched independent responsibilities unless a separate refactor is requested.
+
+## 5. Framework branches
+
+When a change touches a framework with a reference in this skill directory, read that reference before designing the change.
+
+- **Vue 3 · frontend**: for Vue SFCs, Vue reactivity, composables, Pinia, TypeScript frontends, or feature UI state, read `references/vue.md`.
+- **Java · Spring**: for Java services, layered Spring applications, persistence, transactions, integrations, or server-side state, read `references/java.md`.
+- **Python · Flask**: for Python services, Flask applications, layering, requests, persistence, or typed domain code, read `references/python.md`.
+- **Rust**: for Rust crates, Cargo workspaces, CLI/library/service layering, error handling, or ownership-sensitive design, read `references/rust.md`.
+
+## 6. Review before final verification
+
+Inspect the complete diff and confirm:
+
+- every new file has one clear owner and one primary responsibility;
+- dependency direction and public interfaces are valid;
+- each state value has one owner and each transformation has one source of truth;
+- no existing implementation was duplicated under a new name;
+- no unused file, export, prop, event, watcher, or abstraction was added;
+- a legacy large component did not grow without extracting a touched responsibility or documenting why it remains local.
+
+Report each finding against the report contract in `references/design-quality.md`, or state explicitly that none was found.
+
+These checks cover structure the metrics cannot measure: ownership, duplicate
+sources, and unused abstractions. Whether the code is trustworthy is decided by
+the quality gates in §7, not by reading the diff.
+
+## Verification lifecycle
+
+This section defines the canonical phase vocabulary: the four checkpoints below
+are the only phases. The stack reference supplies the command that fulfils each
+one; the project companion may refine it. Do not invent additional phases.
+
+Treat a coherent batch of changes as the unit of verification. Keep one tight,
+focused feedback loop while the batch is changing, then freeze the batch before
+the final review and full gates.
+
+1. **During implementation**: run only the smallest deterministic checks that
+   can fail on the current change. Prefer affected unit tests, typecheck, lint,
+   and formatter checks. Group related fixes before starting another check.
+2. **At the review checkpoint**: inspect the complete diff once the batch is
+   stable. Resolve accepted findings together; after those edits, return to
+   focused checks rather than restarting the full verification sequence.
+3. **At the final checkpoint**: after the last production, test, or configuration
+   edit, run the repository's canonical full gate once, followed by changed-only
+   quality checks required by §7. Do not append a duplicate full test command to
+   a gate that already runs the full suite.
+4. **After commit hooks**: inspect the resulting diff. Reuse the final result if
+   hooks changed only formatting or made no effective source/test/config change;
+   rerun focused checks when they changed executable code, and rerun the full
+   gate only when the final gate's inputs changed.
+
+### Scope triggers
+
+A scope trigger adds a specific check to a phase when the change has a given
+characteristic. Apply the trigger at the final checkpoint unless stated
+otherwise. The stack reference defines the command; the project companion may
+refine it.
+
+- The change touches a route, template, or request/response boundary → add the
+  stack's end-to-end check.
+- The change touches a dependency manifest or lockfile → add the stack's
+  dependency-hygiene and vulnerability checks.
+
+A scope trigger is a condition, not a phase: do not report it as a phase.
+
+The completion criterion is one stable final diff, one final review, one final
+full gate, and recorded evidence for each required scope. A previously passing
+result remains valid for the same tree; a new run needs a changed input or a
+new failure signal.
+
+## 7. Apply deterministic quality gates
+
+Read `references/quality-gates.md` before applying this section. It defines the
+gate contract: CRAP is the enforced gate; mutation testing and CI are optional
+and deferred. It also defines the script contract and the detection and setup
+rules.
+
+When a change adds or alters production behavior, treat metrics as the authority
+on trustworthiness. Use focused checks while repairing a failing gate, then run
+the complete gate once at the final checkpoint. Never weaken production code or
+delete meaningful tests to make a gate pass.
+
+- **Detect.** Find the project's coverage, CRAP, and mutation commands and its
+  thresholds. Use them verbatim; do not invent your own.
+- **When a gate is missing.** Propose setting it up per `references/quality-gates.md`
+  (tools, scripts, thresholds, scope, baseline) and get authorization
+  before modifying the project. For a Node/Vitest project, start from the
+  implementation assets in `templates/node-vitest-quality/`; adapt configuration
+  and paths instead of rewriting the analyzers or mutation scheduler.
+- **Clean (CRAP).** Bring every production function the change touches within the
+  project's CRAP threshold, by lowering complexity or raising coverage.
+- **Harden (mutation, optional).** When the project's policy enables mutation
+  testing, strengthen tests until no unjustified surviving mutant remains on
+  changed code. Waive an equivalent mutant only explicitly, with a stated reason.
+- **Ratchet.** Gate changed production code first; existing code converges as its
+  files are touched.
+- **Applicability.** Apply the gates only to stacks with a toolchain defined in a
+  language reference. For an unknown stack, report that no gate convention exists
+  instead of inventing one.
+- **Report.** State the gate command, the scope, the before/after value, and any
+  waiver, or state explicitly that the project has no gates configured.
+
+If a gate fails, fix the smallest load-bearing cause and rerun the focused check
+that goes red on that cause. Do not rerun unrelated full suites until the fix is
+stable and the final checkpoint is reached.
+
+These gates supplement §6; they do not replace it.
+
+## 8. Verify by scope
+
+Combine these evidence requirements with the scope triggers in Verification lifecycle.
+
+- Documentation or mechanical changes: inspect the diff and run the relevant formatter or checker.
+- Source changes: run the repository's lint and type-check commands.
+- Behavior changes: add or update the smallest relevant unit, integration, or E2E test, then run it.
+- Page or interaction changes: use the repository's browser workflow to inspect the affected viewport, browser errors, and interaction path.
+
+Report commands that ran, commands that were not applicable, and remaining risks. The change is complete only when structure review and applicable verification evidence are both present.

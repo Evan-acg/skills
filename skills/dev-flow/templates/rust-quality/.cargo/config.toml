@@ -1,0 +1,12 @@
+[alias]
+fmt-check  = "fmt --all --check"
+lint       = "clippy --all-targets --all-features -- -D warnings"
+test-all   = "nextest run --all-features"
+test-doc   = "test --doc --all-features"
+cov        = "llvm-cov --all-features --lcov --output-path lcov.info"
+cov-gate   = "llvm-cov --all-features --fail-under-lines 60"
+deny-check = "deny check"
+machete    = "machete ."
+
+# Cargo aliases cannot chain multiple steps; lefthook orchestrates sequences.
+# Aliases carry only atomic commands.
