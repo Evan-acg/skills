@@ -18,7 +18,9 @@ quality-toolchain assets.
 - **Templates**: copyable toolchain assets per stack — CRAP analyzers, linters,
   arch tests, and hooks.
 
-### Install
+## Quickstart
+
+### 1. Install
 
 ```bash
 # project scope (default): installs into the agent's skills directory
@@ -26,6 +28,56 @@ npx skills add Evan-acg/skills --skill dev-flow
 
 # global scope
 npx skills add Evan-acg/skills --skill dev-flow -g
+```
+
+### 2. Initialize a project
+
+In your agent, say:
+
+```text
+Use dev-flow to initialize this project.
+```
+
+It discovers the repository — language, framework, existing `AGENTS.md`, test
+commands, CI — then writes the smallest setup: an `AGENTS.md` pointer plus a
+project companion holding your repo's paths, commands, thresholds, and
+boundaries. Existing instructions are preserved, never overwritten.
+
+### 3. Work the loop
+
+Every change runs the same four phases; the stack reference supplies the command
+for each:
+
+| Phase | What the agent does |
+| --- | --- |
+| During implementation | run the smallest focused check (affected test, typecheck, lint) |
+| Review checkpoint | inspect the full diff |
+| Final checkpoint | run the repo's gate once (CRAP + lint + typecheck + tests) |
+| After commit hooks | re-inspect the diff if hooks changed code |
+
+**Scope triggers** add checks when the change touches a route, template, or
+request boundary (end-to-end) or a dependency manifest (dependency hygiene and
+vulnerability scans).
+
+### 4. Stack references
+
+The agent loads the matching reference on demand:
+
+- `references/java.md` — Java / Spring
+- `references/vue.md` — Vue 3 / TypeScript frontends
+- `references/python.md` — Python / Flask
+- `references/rust.md` — Rust / Cargo workspaces
+
+Copyable gate assets (CRAP analyzers, linters, architecture tests, hooks) live
+under `templates/<stack>-quality/`.
+
+### 5. Keep it in sync
+
+When the skill changes, re-run synchronization to update a project's guidance
+without overwriting its local rules:
+
+```text
+Use dev-flow to synchronize this project.
 ```
 
 ### Layout
