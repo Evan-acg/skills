@@ -20,65 +20,74 @@ quality-toolchain assets.
 
 ## Quickstart
 
-### 1. Install
+`dev-flow` is a **workflow skill**: once installed, the agent follows it whenever
+it creates or changes product code. You don't run it — you work normally, and it
+enforces discovery, module boundaries, and verification.
+
+### Install
 
 ```bash
-# project scope (default): installs into the agent's skills directory
-npx skills add Evan-acg/skills --skill dev-flow
-
-# global scope
-npx skills add Evan-acg/skills --skill dev-flow -g
+npx skills add Evan-acg/skills --skill dev-flow      # current project
+npx skills add Evan-acg/skills --skill dev-flow -g   # all projects
 ```
 
-### 2. Initialize a project
+### Use it
 
-In your agent, say:
+Ask for a change as usual. In a Flask project, for example:
+
+> Add a `GET /reports/<id>` endpoint.
+
+Because the task touches code, the agent loads `dev-flow`, reads the project's
+`AGENTS.md`, and opens the matching stack reference (`references/python.md`).
+It then:
+
+1. **Discovers** existing routes, models, and tests before writing anything.
+2. **States a plan** — the files to add or change, each one's owner, the data
+   flow, and the smallest test that proves the change.
+3. **Implements**, running focused checks as it goes: `uv run ruff check --fix`,
+   `uv run pytest tests/…`, `uv run mypy src/app/…`.
+4. **Verifies** — at the final checkpoint it runs the repository's gate once
+   (`uv run poe prepush` once you adopt the templates below) and reports the
+   commands, the results, and anything it could not run.
+
+Two scope triggers add checks automatically: a change to a route, template, or
+request boundary also runs the end-to-end test; a change to `pyproject.toml` or a
+dependency also runs dependency-hygiene and vulnerability checks.
+
+The same pattern applies to other stacks, using `references/java.md`,
+`references/vue.md`, or `references/rust.md` and that stack's commands.
+
+### Set up a project (optional)
+
+New or existing projects can be initialized once:
 
 ```text
 Use dev-flow to initialize this project.
 ```
 
-It discovers the repository — language, framework, existing `AGENTS.md`, test
-commands, CI — then writes the smallest setup: an `AGENTS.md` pointer plus a
-project companion holding your repo's paths, commands, thresholds, and
-boundaries. Existing instructions are preserved, never overwritten.
-
-### 3. Work the loop
-
-Every change runs the same four phases; the stack reference supplies the command
-for each:
-
-| Phase | What the agent does |
-| --- | --- |
-| During implementation | run the smallest focused check (affected test, typecheck, lint) |
-| Review checkpoint | inspect the full diff |
-| Final checkpoint | run the repo's gate once (CRAP + lint + typecheck + tests) |
-| After commit hooks | re-inspect the diff if hooks changed code |
-
-**Scope triggers** add checks when the change touches a route, template, or
-request boundary (end-to-end) or a dependency manifest (dependency hygiene and
-vulnerability scans).
-
-### 4. Stack references
-
-The agent loads the matching reference on demand:
-
-- `references/java.md` — Java / Spring
-- `references/vue.md` — Vue 3 / TypeScript frontends
-- `references/python.md` — Python / Flask
-- `references/rust.md` — Rust / Cargo workspaces
-
-Copyable gate assets (CRAP analyzers, linters, architecture tests, hooks) live
-under `templates/<stack>-quality/`.
-
-### 5. Keep it in sync
-
-When the skill changes, re-run synchronization to update a project's guidance
-without overwriting its local rules:
+The agent inspects the repo — language, framework, existing `AGENTS.md`, test
+commands, CI — and writes a small project companion with your paths, commands,
+thresholds, and boundaries, preserving existing instructions. After the skill is
+updated, re-sync:
 
 ```text
 Use dev-flow to synchronize this project.
 ```
+
+### Enable the runnable gates
+
+The skill defines the gate; the runnable pieces are templates you copy into the
+project once. Copy the directory for your stack from the installed skill (or from
+this repo) and follow its README:
+
+```bash
+# from the skill directory, into your project
+cp -r templates/python-quality/. /path/to/your/project/
+```
+
+`templates/<stack>-quality/README.md` gives the exact steps for Java, Vue/Node,
+Python, and Rust: merge the config, add the scripts, install the hook, then keep
+the gate on the report-only variant until the baseline converges.
 
 ### Layout
 
