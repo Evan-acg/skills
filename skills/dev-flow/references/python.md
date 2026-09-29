@@ -50,24 +50,28 @@ focused checks; run the full gate only at the final checkpoint.
 
 ## Symptom → tool
 
-| Symptom | Caught by | Status |
-| --- | --- | --- |
-| Hallucinated / unresolved import | mypy `import-not-found` + deptry + ruff `F` | enforced |
-| Swallowed exception | ruff `E722`, `S110`, `S112` | enforced |
-| Empty / stub implementation | ruff `PIE790` | partial |
-| Duplication / copy-paste | ruff `PLR0912`, `SIM`, `PIE` | partial — no clone detector |
-| Cyclomatic complexity | ruff `C901` (20), `PLR0915`, `PLR0913`, `PLR0912`, `PLR0911`; xenon | enforced |
-| Large file | self-maintained CRAP script (`--max-file-lines`) | enforced |
-| God class | CRAP script (`--max-class-lines`, `--max-public-methods`) | partial — no instance-attribute count |
-| Cognitive complexity | — | not covered |
-| Circular / layer violation | import-linter (`layers`, `forbidden`, `independence`) | enforced |
-| Type errors | mypy (strict, progressive) | enforced |
-| Security issue | ruff `S` + bandit | enforced |
-| Dependency vulnerability | pip-audit | enforced |
-| Dependency hygiene | deptry | enforced |
-| Formatting drift | ruff format | enforced |
-| Debug residue (AI tell) | ruff `T20`, `ERA` | partial |
-| Narrative comments (AI tell) | — | not covered |
+Each row is an audit item. `Verify` states how to confirm the rule is active and
+fires on a violation; a row that cannot be shown to fire is reported as
+`present-but-not-enforcing`, not as covered.
+
+| Symptom | Caught by | Status | Verify |
+| --- | --- | --- | --- |
+| Hallucinated / unresolved import | mypy `import-not-found` + deptry + ruff `F` | enforced | `uv run mypy src` fails on a bogus import; `ruff check --select F` and `deptry` also run |
+| Swallowed exception | ruff `E722`, `S110`, `S112` | enforced | `ruff` config selects `E722`/`S`; `except: pass` fails `ruff check` |
+| Empty / stub implementation | ruff `PIE790` | partial | rule selected; a redundant `pass` fails, a semantic stub does not |
+| Duplication / copy-paste | ruff `PLR0912`, `SIM`, `PIE` | partial | rules selected; similar code may warn, no clone detector |
+| Cyclomatic complexity | ruff `C901` (20), `PLR0915`, `PLR0913`, `PLR0912`, `PLR0911`; xenon | enforced | `ruff` sets `C901 max-complexity=20`; an over-complex function fails |
+| Large file | self-maintained CRAP script (`--max-file-lines`) | enforced | `crap.py --max-file-lines` runs in the gate; a 401-line file fails |
+| God class | CRAP script (`--max-class-lines`, `--max-public-methods`) | partial | the script checks those counts; instance-attribute count is not checked |
+| Cognitive complexity | — | not covered | no rule exists; never report this row as enforced |
+| Circular / layer violation | import-linter (`layers`, `forbidden`, `independence`) | enforced | `lint-imports` reads the contract config; a layer violation fails |
+| Type errors | mypy (strict, progressive) | enforced | `mypy` config sets `strict`; a wrong-type fixture fails |
+| Security issue | ruff `S` + bandit | enforced | `ruff` selects `S` and `bandit` runs in the gate; a canary pattern fails |
+| Dependency vulnerability | pip-audit | enforced | `pip-audit` runs with a fail threshold; a vulnerable pinned dep fails |
+| Dependency hygiene | deptry | enforced | `deptry` runs with the configured rules; an unused/undeclared dep is reported |
+| Formatting drift | ruff format | enforced | `ruff format --check` runs in the gate; an unformatted file fails |
+| Debug residue (AI tell) | ruff `T20`, `ERA` | partial | rules selected; `print(...)` fails, other residue is not caught |
+| Narrative comments (AI tell) | — | not covered | no rule exists; never report this row as enforced |
 
 SOLID: **S** via the complexity and size rules; **I** via import-linter
 `independence`; **D** via import-linter `layers`/`forbidden`. **O** and **L** have

@@ -121,30 +121,34 @@ run the full `verify` only at the final checkpoint.
 
 ## Symptom → tool
 
-| Symptom | Caught by | Status |
-| --- | --- | --- |
-| Hallucinated / unresolved import | compile + `dependency:analyze-only` | enforced |
-| Swallowed exception | Checkstyle `EmptyCatchBlock`, PMD `errorprone` | enforced |
-| Empty / stub implementation | Checkstyle `EmptyBlock`, PMD | partial — semantic stubs are not reliably detectable |
-| Large file | Checkstyle `FileLength` (400) | enforced |
-| Long method | Checkstyle `MethodLength` (100), PMD `ExcessiveMethodLength` | enforced |
-| God class | PMD `ExcessiveClassLength` / `TooManyMethods` / `CouplingBetweenObjects` | enforced |
-| Long parameter list | Checkstyle `ParameterNumber` (4), PMD | enforced |
-| Duplication / copy-paste | PMD CPD (`cpd-check`) | enforced |
-| Cyclomatic complexity | PMD `CyclomaticComplexity` (20) | enforced |
-| Cognitive complexity | PMD `CognitiveComplexity` (20) | enforced |
-| NPath complexity | PMD `NPathComplexity` | enforced |
-| Layer / cross-layer violation | ArchUnit `layeredArchitecture` | enforced |
-| Domain/application bound to framework | ArchUnit `noClasses()...dependOnClassesThat()` | enforced |
-| Circular dependency | ArchUnit `slices().beFreeOfCycles()` | enforced |
-| Type / common errors | Error Prone (compile-time) | optional — enable after the baseline is clean |
-| Bytecode-level defect | SpotBugs (`effort Max`, `threshold Medium`) | enforced |
-| Security issue | find-sec-bugs | enforced |
-| Dependency vulnerability | `dependency-check` | enforced |
-| Dependency hygiene (unused/undeclared) | `dependency:analyze-only` | enforced |
-| Formatting drift | `spotless:check` | enforced |
-| Debug residue (AI tell) | PMD `bestpractices` (`SystemPrintln`) | partial |
-| Narrative comments (AI tell) | — | not covered |
+Each row is an audit item. `Verify` states how to confirm the rule is active and
+fires on a violation; a row that cannot be shown to fire is reported as
+`present-but-not-enforcing`, not as covered.
+
+| Symptom | Caught by | Status | Verify |
+| --- | --- | --- | --- |
+| Hallucinated / unresolved import | compile + `dependency:analyze-only` | enforced | `./mvnw compile` fails on a bogus import; `dependency:analyze-only` reports an undeclared dependency |
+| Swallowed exception | Checkstyle `EmptyCatchBlock`, PMD `errorprone` | enforced | the Checkstyle/PMD config lists the rules; an empty catch block fails the check |
+| Empty / stub implementation | Checkstyle `EmptyBlock`, PMD | partial | rules present in config; an empty block fails, a semantic stub does not |
+| Large file | Checkstyle `FileLength` (400) | enforced | `checkstyle.xml` sets `FileLength max=400`; a 401-line class fails |
+| Long method | Checkstyle `MethodLength` (100), PMD `ExcessiveMethodLength` | enforced | config sets `max=100`; a 101-line method fails |
+| God class | PMD `ExcessiveClassLength` / `TooManyMethods` / `CouplingBetweenObjects` | enforced | `ruleset.xml` lists the rules; a class over the limits fails PMD |
+| Long parameter list | Checkstyle `ParameterNumber` (4), PMD | enforced | config sets `max=4`; a 5-parameter method fails |
+| Duplication / copy-paste | PMD CPD (`cpd-check`) | enforced | `cpd-check` runs with the configured minimum tokens; a duplicated block fails |
+| Cyclomatic complexity | PMD `CyclomaticComplexity` (20) | enforced | `ruleset.xml` sets `max=20`; an over-complex method fails |
+| Cognitive complexity | PMD `CognitiveComplexity` (20) | enforced | config sets `max=20`; an over-complex method fails |
+| NPath complexity | PMD `NPathComplexity` | enforced | rule present in `ruleset.xml`; a deeply branched method fails |
+| Layer / cross-layer violation | ArchUnit `layeredArchitecture` | enforced | `ArchitectureTest` defines and runs the rule; a deliberate layer violation fails `test` |
+| Domain/application bound to framework | ArchUnit `noClasses()...dependOnClassesThat()` | enforced | the ArchUnit rule runs (not commented out); a framework import in the domain layer fails |
+| Circular dependency | ArchUnit `slices().beFreeOfCycles()` | enforced | the rule runs; a deliberate package cycle fails `ArchitectureTest` |
+| Type / common errors | Error Prone (compile-time) | optional | counts only when the compiler plugin is enabled; otherwise it is `absent` |
+| Bytecode-level defect | SpotBugs (`effort Max`, `threshold Medium`) | enforced | plugin configured with those effort/threshold values; a known-bad bytecode fixture is reported |
+| Security issue | find-sec-bugs | enforced | plugin listed with SpotBugs; a canary pattern is reported |
+| Dependency vulnerability | `dependency-check` | enforced | `dependency-check:check` runs with a fail threshold; a flagged CVE fails |
+| Dependency hygiene (unused/undeclared) | `dependency:analyze-only` | enforced | configured to fail on used-undeclared and unused; a canary dependency is reported |
+| Formatting drift | `spotless:check` | enforced | `spotless:check` is bound to the build; a misformatted file fails |
+| Debug residue (AI tell) | PMD `bestpractices` (`SystemPrintln`) | partial | rule present; a `System.out.println` fails, other residue is not caught |
+| Narrative comments (AI tell) | — | not covered | no rule exists; never report this row as enforced |
 
 SOLID: **S** is approximated by the PMD and CPD complexity/size rules; **I** by the
 ArchUnit layering and the `domain/port` dependency surface; **D** by the ArchUnit

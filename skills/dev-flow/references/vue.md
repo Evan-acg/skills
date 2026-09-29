@@ -101,25 +101,29 @@ with focused checks and run the full gate only at the final checkpoint.
 
 ## Symptom → tool
 
-| Symptom | Caught by | Status |
-| --- | --- | --- |
-| Hallucinated import | `import-x/no-unresolved` (error) | enforced |
-| Swallowed exception | `no-empty` (`allowEmptyCatch: false`) | enforced |
-| Empty / stub implementation | `@typescript-eslint/no-empty-function`, `no-unused-vars` | partial |
-| Large `.ts` file | `max-lines` (warn, 400) | enforced |
-| Long function | `max-lines-per-function` (warn, 100) | enforced |
-| Oversized SFC block | `vue/max-lines-per-block` (warn; template/script 300, style 200) | enforced |
-| Duplication / copy-paste | `sonarjs/no-duplicate-string` | partial |
-| Complexity | `sonarjs/cognitive-complexity` (warn, 20) | enforced |
-| FSD layer / cross-slice import | `steiger` `fsd/forbidden-imports` | enforced |
-| FSD slice public API / segments | `steiger` `fsd/public-api`, `fsd/no-segmentless-slices` | enforced |
-| Circular dependency / orphans | `dependency-cruiser` `no-circular`, `no-orphans` | enforced |
-| Directory / file naming | `@ls-lint/ls-lint` | enforced |
-| Hardcoded style color | `declaration-strict-value` + design tokens | enforced (see gaps) |
-| Property order | `stylelint-config-recess-order` | enforced |
-| Vue 3 best practices | `eslint-plugin-vue` `flat/recommended` | enforced |
-| Pinia conventions | `eslint-plugin-pinia` `recommended-flat` | optional |
-| Narrative comments (AI tell) | — | not covered |
+Each row is an audit item. `Verify` states how to confirm the rule is active and
+fires on a violation; a row that cannot be shown to fire is reported as
+`present-but-not-enforcing`, not as covered.
+
+| Symptom | Caught by | Status | Verify |
+| --- | --- | --- | --- |
+| Hallucinated import | `import-x/no-unresolved` (error) | enforced | `npx eslint --print-config <file>` shows the rule as `error`; a bogus import path makes `npx eslint` exit non-zero |
+| Swallowed exception | `no-empty` (`allowEmptyCatch: false`) | enforced | print-config shows `no-empty` with `allowEmptyCatch: false`; `catch {}` fails lint |
+| Empty / stub implementation | `@typescript-eslint/no-empty-function`, `no-unused-vars` | partial | print-config shows both rules active; an empty function body and an unused binding each fail |
+| Large `.ts` file | `max-lines` (warn, 400) | enforced | print-config shows `max-lines` `max: 400`; a 401-line fixture warns |
+| Long function | `max-lines-per-function` (warn, 100) | enforced | print-config shows `max: 100`; a 101-line fixture warns |
+| Oversized SFC block | `vue/max-lines-per-block` (warn; template/script 300, style 200) | enforced | print-config shows the rule and per-block limits; an oversized SFC warns |
+| Duplication / copy-paste | `sonarjs/no-duplicate-string` | partial | print-config shows the rule active; a repeated string literal warns (logic clones are not detected) |
+| Complexity | `sonarjs/cognitive-complexity` (warn, 20) | enforced | print-config shows threshold 20; a deeply nested fixture warns |
+| FSD layer / cross-slice import | `steiger` `fsd/forbidden-imports` | enforced | `npx steiger ./src` runs the project config; a cross-slice import is flagged |
+| FSD slice public API / segments | `steiger` `fsd/public-api`, `fsd/no-segmentless-slices` | enforced | `npx steiger ./src` flags a direct segment import and a segmentless slice |
+| Circular dependency / orphans | `dependency-cruiser` `no-circular`, `no-orphans` | enforced | `npx depcruise src` flags a deliberate cycle and an unreferenced module |
+| Directory / file naming | `@ls-lint/ls-lint` | enforced | `npx ls-lint` reads `.ls-lint.yml`; a misnamed file exits non-zero |
+| Hardcoded style color | `declaration-strict-value` + design tokens | enforced (see gaps) | config lists the color property with the token map; a hardcoded hex fails `stylelint` |
+| Property order | `stylelint-config-recess-order` | enforced | `.stylelintrc` extends the config; out-of-order declarations fail `stylelint` |
+| Vue 3 best practices | `eslint-plugin-vue` `flat/recommended` | enforced | print-config shows `vue/*` rules at `error`; a violating SFC fails lint |
+| Pinia conventions | `eslint-plugin-pinia` `recommended-flat` | optional | counts only when the plugin is installed and extended; otherwise print-config has no pinia rules and the row is `absent` |
+| Narrative comments (AI tell) | — | not covered | no rule exists; never report this row as enforced |
 
 SOLID: **S** via the complexity and size rules plus FSD slicing; **I** via the FSD
 public API (`index.ts`) and `steiger` rules; **D** via FSD layer order and

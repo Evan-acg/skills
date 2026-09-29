@@ -17,6 +17,7 @@ Project companion documents are configuration, not a second copy of this workflo
 - **Scope trigger** — a characteristic of a change (a route or template touched, a dependency manifest touched) that adds a specific check to a phase. A scope trigger is a condition, not a phase.
 - **Reference** — a stack-specific rule file under `references/`, loaded on demand when a change touches that stack.
 - **Companion** — the project's own workflow document. It holds only repository-specific paths, commands, thresholds, domain language, architecture boundaries, and delivery constraints.
+- **Enforcement, not presence** — a tool, config, or command is evidence of a check only when it carries a non-empty rule set or an explicit threshold, is wired into a path that runs it (script, hook, or CI), and has been observed to fail on a deliberate violation. A tool that is merely present is `present-but-not-enforcing` and is treated as absent in every report.
 
 ## Initialization mode
 
@@ -24,6 +25,7 @@ When the user explicitly asks to initialize, set up, or bootstrap this workflow 
 
 1. Discover the project before creating guidance:
    - inspect the repository root, package manager, language and framework, source layout, existing `AGENTS.md` or equivalent instructions, architecture and design documents, test commands, and CI configuration;
+   - audit every detected linter, formatter, type-check, test runner, coverage, and gate command against the applicable stack reference, and record each as `enforced`, `partial`, or `absent` with its specific missing rules or thresholds — never record mere presence as a pass;
    - search for existing workflow or agent guidance before adding a new document;
    - record detected facts, contradictions, missing information, and files that must not be overwritten.
 2. Design the smallest project-specific setup:
@@ -64,6 +66,7 @@ The synchronization target is the project's workflow guidance, not product code.
 - Read the applicable repository instructions, architecture documents, design rules, glossary, and ADRs.
 - Search for existing implementations, types, APIs, state modules, tests, and public entry points before creating a file or abstraction.
 - Identify the narrowest owner for the change and record contradictions between the request, code, and documented architecture.
+- Audit every detected quality tool against the applicable stack reference's required rules and thresholds instead of recording its presence. Classify each as `enforced`, `partial`, or `absent` per the Enforcement term, and list the specific missing rules, thresholds, or wiring as gaps.
 - Treat a prototype or experiment as temporary unless the project explicitly defines it as production code.
 
 ## 2. Design before writing
@@ -100,7 +103,7 @@ Look for god modules, duplicated sources of truth, hidden mutation, and shotgun 
 
 ## 5. Framework branches
 
-When a change touches a framework with a reference in this skill directory, read that reference before designing the change.
+When a change touches a framework with a reference in this skill directory, read that reference before designing the change. Treat the reference's symptom → tool matrix as the enforcement audit checklist: confirm each applicable rule is configured and fires on a violation, and report uncovered or non-enforcing rules instead of assuming the tool's presence covers them.
 
 - **Vue 3 · frontend**: for Vue SFCs, Vue reactivity, composables, Pinia, TypeScript frontends, or feature UI state, read `references/vue.md`.
 - **Java · Spring**: for Java services, layered Spring applications, persistence, transactions, integrations, or server-side state, read `references/java.md`.
@@ -181,7 +184,10 @@ the complete gate once at the final checkpoint. Never weaken production code or
 delete meaningful tests to make a gate pass.
 
 - **Detect.** Find the project's coverage, CRAP, and mutation commands and its
-  thresholds. Use them verbatim; do not invent your own.
+  thresholds. Use them verbatim; do not invent your own. Verify before trusting:
+  a command counts only when its threshold is set, it runs the scope it names, and
+  it fails on a deliberate violation (a canary). A script that always exits zero,
+  runs no tests, or has no threshold is a missing gate — report it; do not pass it.
 - **When a gate is missing.** Propose setting it up per `references/quality-gates.md`
   (tools, scripts, thresholds, scope, baseline) and get authorization
   before modifying the project. For a Node/Vitest project, start from the
@@ -211,7 +217,9 @@ These gates supplement §6; they do not replace it.
 Combine these evidence requirements with the scope triggers in Verification lifecycle.
 
 - Documentation or mechanical changes: inspect the diff and run the relevant formatter or checker.
-- Source changes: run the repository's lint and type-check commands.
+- Source changes: run the repository's lint and type-check commands, and confirm
+  they are configured to enforce (rules active, `strict` on). A command that cannot
+  fail is reported as `not enforced`, not as passed.
 - Behavior changes: add or update the smallest relevant unit, integration, or E2E test, then run it.
 - Page or interaction changes: use the repository's browser workflow to inspect the affected viewport, browser errors, and interaction path.
 

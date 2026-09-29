@@ -47,23 +47,27 @@ red, repair with focused checks; run the full gate only at the final checkpoint.
 
 ## Symptom → tool
 
-| Symptom | Caught by | Status |
-| --- | --- | --- |
-| Hallucinated import | compile error | built in |
-| Swallowed error / empty handling | `clippy::let_underscore_must_use`, `unused_must_use` | enforced |
-| Stub implementation | `clippy::todo`, `unimplemented` (deny); `missing_docs` | enforced |
-| Long function | `clippy::too_many_lines` (warn, 100) | enforced |
-| Cognitive complexity | `clippy::cognitive_complexity` (warn, 20) | enforced |
-| Too many arguments | `clippy::too_many_arguments` (warn, 7) | enforced |
-| Duplication / copy-paste | clippy local rules | partial — no clone detector |
-| Layer / cross-layer dependency | compile-time crate boundary + `cargo-deny` `wrappers` | enforced |
-| Circular dependency | Cargo forbids cyclic crate dependencies | built in |
-| Unused dependency | `cargo-machete` (gate) + `cargo-udeps` (optional) | enforced |
-| Supply-chain vulnerability / license | `cargo-deny` `advisories` / `licenses` / `sources` | enforced |
-| Spelling / typos | `typos` | enforced |
-| TOML format / key order | `taplo` | enforced |
-| Test / coverage | `cargo-nextest` + `cargo-llvm-cov` | enforced |
-| Narrative comments (AI tell) | — | not covered |
+Each row is an audit item. `Verify` states how to confirm the rule is active and
+fires on a violation; a row that cannot be shown to fire is reported as
+`present-but-not-enforcing`, not as covered.
+
+| Symptom | Caught by | Status | Verify |
+| --- | --- | --- | --- |
+| Hallucinated import | compile error | built in | `cargo build` fails on a bogus `use` |
+| Swallowed error / empty handling | `clippy::let_underscore_must_use`, `unused_must_use` | enforced | the lints are `deny` in `Cargo.toml [lints]`; `let _ = ...` fails `cargo clippy` |
+| Stub implementation | `clippy::todo`, `unimplemented` (deny); `missing_docs` | enforced | lints set to `deny`; a `todo!()` fails `cargo clippy` |
+| Long function | `clippy::too_many_lines` (warn, 100) | enforced | `clippy.toml` sets `too-many-lines-threshold = 100`; a 101-line fn warns |
+| Cognitive complexity | `clippy::cognitive_complexity` (warn, 20) | enforced | `clippy.toml` sets the threshold; a deeply nested fn warns |
+| Too many arguments | `clippy::too_many_arguments` (warn, 7) | enforced | `clippy.toml` sets the threshold; an 8-arg fn warns |
+| Duplication / copy-paste | clippy local rules | partial | only local rules fire; no clone detector |
+| Layer / cross-layer dependency | compile-time crate boundary + `cargo-deny` `wrappers` | enforced | the workspace crate boundaries compile; `cargo deny check` reports a banned `wrappers` edge |
+| Circular dependency | Cargo forbids cyclic crate dependencies | built in | a cyclic crate dependency fails `cargo metadata` and the build |
+| Unused dependency | `cargo-machete` (gate) + `cargo-udeps` (optional) | enforced | `cargo machete .` runs in the gate; an unused dependency is reported |
+| Supply-chain vulnerability / license | `cargo-deny` `advisories` / `licenses` / `sources` | enforced | `deny.toml` enables the checks; a banned license or CVE fails `cargo deny check` |
+| Spelling / typos | `typos` | enforced | `typos` runs in the gate; a misspelling fails |
+| TOML format / key order | `taplo` | enforced | `taplo fmt --check` runs; an unformatted TOML fails |
+| Test / coverage | `cargo-nextest` + `cargo-llvm-cov` | enforced | `cargo llvm-cov nextest` runs with `--fail-under-lines`; a below-threshold run fails |
+| Narrative comments (AI tell) | — | not covered | no rule exists; never report this row as enforced |
 
 SOLID: **S** via the complexity and size rules and the crate boundary; **I** via
 `pub`/`pub(crate)` narrowing and `cargo-public-api`; **D** via one-way layering and

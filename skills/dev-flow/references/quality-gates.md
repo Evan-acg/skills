@@ -32,9 +32,12 @@ Never weaken production code or delete meaningful tests to make a gate pass.
    check command, and a mutation command.
 2. Find the thresholds and file scope the project defines, and any environment
    variable that overrides a threshold for CI.
-3. If all three commands exist, use the project's commands, thresholds, and scope
-   verbatim. Do not invent your own.
-4. If some or all are missing, go to "Setup proposal".
+3. Verify each command before trusting it: it must carry an explicit threshold,
+   run the scope it names, and fail on a deliberate violation (a canary). A script
+   that always exits zero, runs no tests, or has no threshold is a missing gate.
+4. If all three commands exist and pass the verification in step 3, use the
+   project's commands, thresholds, and scope verbatim. Do not invent your own.
+5. If some or all are missing, go to "Setup proposal".
 
 ## Setup proposal
 
