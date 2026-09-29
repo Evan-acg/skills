@@ -54,6 +54,7 @@ The synchronization target is the project's workflow guidance, not product code.
 ## References
 
 - `references/quality-gates.md` — the gate contract used in §7. The enforced gate is CRAP; mutation testing and CI are optional and deferred.
+- `references/local-service-verification.md` — the lifecycle contract for local HTTP services, startup checks, and browser E2E prerequisites.
 - `references/vue.md` — Vue 3, composables, Pinia, TypeScript frontends, and Vitest specifics.
 - `references/java.md` — Java and Spring specifics.
 - `references/python.md` — Python, Flask, uv, Ruff, mypy, and pytest specifics.
@@ -163,6 +164,11 @@ refine it.
   stack's end-to-end check.
 - The change touches a dependency manifest or lockfile → add the stack's
   dependency-hygiene and vulnerability checks.
+- The verification needs a local dev server, HTTP probe, startup/module-loading
+  measurement, proxy check, or browser E2E run → load
+  `references/local-service-verification.md`. Reuse a healthy matching service
+  when possible; start one only when needed. A browser E2E command uses the
+  repository's configured Playwright, Cypress, or equivalent workflow.
 
 A scope trigger is a condition, not a phase: do not report it as a phase.
 
@@ -222,5 +228,8 @@ Combine these evidence requirements with the scope triggers in Verification life
   fail is reported as `not enforced`, not as passed.
 - Behavior changes: add or update the smallest relevant unit, integration, or E2E test, then run it.
 - Page or interaction changes: use the repository's browser workflow to inspect the affected viewport, browser errors, and interaction path.
+- Local-service checks: report the service identity, whether it was reused or
+  started by the run, readiness result, timings, threshold result, log path, and
+  cleanup result. Apply the local-service reference before browser E2E.
 
 Report commands that ran, commands that were not applicable, and remaining risks. The change is complete only when structure review and applicable verification evidence are both present.
