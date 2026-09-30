@@ -4,6 +4,15 @@ All notable changes to this workflow are recorded here. The `VERSION` file holds
 the current version. Project companions record the version they were last
 synchronized to; see `references/synchronization.md`.
 
+## 1.2.0
+
+- Added a single evidence ledger owned by the main agent; review agents consume
+  evidence instead of rerunning project checks.
+- Made `/code-review` the sole qualitative dual-axis review for a stable batch,
+  with focused rechecks only when its inputs change.
+- Added result reuse rules and a serial-execution guard for checks that share
+  temporary files or generated outputs.
+
 ## 1.1.0
 
 - Added the **Enforcement, not presence** contract: a tool, config, or command

@@ -113,6 +113,11 @@ When a change touches a framework with a reference in this skill directory, read
 
 ## 6. Review before final verification
 
+When `/code-review` is used, its Standards axis owns this structural checklist.
+The main agent performs the diff handoff and aggregates the result; it does not
+run a second structural review. Without `/code-review`, the main agent applies
+this checklist locally.
+
 Inspect the complete diff and confirm:
 
 - every new file has one clear owner and one primary responsibility;
@@ -128,6 +133,33 @@ These checks cover structure the metrics cannot measure: ownership, duplicate
 sources, and unused abstractions. Whether the code is trustworthy is decided by
 the quality gates in §7, not by reading the diff.
 
+## Verification Ownership
+
+Keep one evidence ledger for the current batch. The main agent owns command
+execution and records each result with the tree identity, command, scope, and
+outcome. Review agents consume that ledger; they do not rerun tests, lint,
+typechecks, coverage, CRAP, dependency checks, or project-specific validation.
+If evidence is missing, they report the gap instead of silently starting a
+second verification loop.
+
+Use one review invocation for one stable batch. When `/code-review` is used,
+its Standards and Spec axes are the sole qualitative review for that batch; the
+main agent performs the diff handoff and aggregates findings, but does not run
+a second copy of either axis. If the review changes production code or the
+spec, rerun only the focused checks affected by that change. Re-run an axis only
+when its inputs changed or its previous result is invalidated; do not restart
+both axes by default.
+
+Reuse a passing result while the verified tree and command inputs are unchanged.
+Do not rerun a full gate because a review agent finished, because a commit hook
+ran unchanged checks, or because a report needs to be reformatted. A hook that
+changes executable source, tests, or configuration invalidates the relevant
+focused evidence; a hook that changes only formatting does not invalidate
+behavior or type evidence.
+
+Keep commands with shared temporary files or generated outputs serial. Parallel
+execution is reserved for read-only checks with independent working state.
+
 ## Verification lifecycle
 
 This section defines the canonical phase vocabulary: the four checkpoints below
@@ -141,13 +173,15 @@ the final review and full gates.
 1. **During implementation**: run only the smallest deterministic checks that
    can fail on the current change. Prefer affected unit tests, typecheck, lint,
    and formatter checks. Group related fixes before starting another check.
-2. **At the review checkpoint**: inspect the complete diff once the batch is
-   stable. Resolve accepted findings together; after those edits, return to
-   focused checks rather than restarting the full verification sequence.
+2. **At the review checkpoint**: freeze the batch, inspect the complete diff,
+   and invoke `/code-review` once when requested. Pass the evidence ledger to
+   its agents and require qualitative review only. Resolve accepted findings
+   together; after those edits, return to focused checks rather than restarting
+   the full verification sequence.
 3. **At the final checkpoint**: after the last production, test, or configuration
    edit, run the repository's canonical full gate once, followed by changed-only
-   quality checks required by §7. Do not append a duplicate full test command to
-   a gate that already runs the full suite.
+   quality checks required by §7. If the canonical gate already runs the full
+   suite, do not append a standalone full test command.
 4. **After commit hooks**: inspect the resulting diff. Reuse the final result if
    hooks changed only formatting or made no effective source/test/config change;
    rerun focused checks when they changed executable code, and rerun the full
@@ -172,10 +206,10 @@ refine it.
 
 A scope trigger is a condition, not a phase: do not report it as a phase.
 
-The completion criterion is one stable final diff, one final review, one final
-full gate, and recorded evidence for each required scope. A previously passing
-result remains valid for the same tree; a new run needs a changed input or a
-new failure signal.
+The completion criterion is one stable final diff, one qualitative review, one
+final full gate, and recorded evidence for each required scope. A previously
+passing result remains valid for the same tree; a new run needs a changed input
+or a new failure signal.
 
 ## 7. Apply deterministic quality gates
 
