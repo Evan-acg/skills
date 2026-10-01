@@ -101,7 +101,7 @@ companion may refine these; do not invent new phases.
 | --- | --- |
 | During implementation (focused check) | `./mvnw spotless:apply`, `./mvnw -Dtest=SomeTest test`, `./mvnw compile` |
 | Review checkpoint | inspect the diff; run `./mvnw -Dtest=ArchitectureTest test` when packages moved |
-| Final checkpoint (gate) | `./mvnw -Dcrap.fail=true verify` |
+| Final checkpoint (changed quality) | the repository's changed-only quality command |
 | After commit hooks | inspect the diff; rerun focused checks if hooks changed executable code |
 
 A full `verify` runs `spotless:check`, `checkstyle:check`, `pmd:check`,
@@ -190,4 +190,3 @@ project decision, not a global constant.
 Copyable configuration and implementation code for this stack lives in
 `../templates/java-quality/`. Adapt paths and package names; do not rewrite the
 CRAP analyzer.
-

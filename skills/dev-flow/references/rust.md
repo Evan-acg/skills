@@ -27,12 +27,13 @@ project companion may refine these; do not invent new phases.
 | --- | --- |
 | During implementation (focused check) | `cargo clippy -p <crate> -- -D warnings`, `cargo nextest run -p <crate>` |
 | Review checkpoint | inspect the diff |
-| Final checkpoint (gate) | `lefthook run pre-push` |
+| Final checkpoint (changed quality) | the repository's changed-only quality command |
 | After commit hooks | inspect the diff; rerun focused checks if hooks changed code |
 
-The gate runs `fmt --check`, `clippy -D warnings`, `taplo`, `typos`, `nextest`,
-`test --doc`, coverage, `cargo deny check`, and `cargo machete`. While a gate is
-red, repair with focused checks; run the full gate only at the final checkpoint.
+The delivery gate runs `fmt --check`, `clippy -D warnings`, `taplo`, `typos`,
+`nextest`, `test --doc`, coverage, `cargo deny check`, and `cargo machete` and
+belongs to the repository's pre-push hook or remote CI. While a changed-quality
+check is red, repair with focused checks and rerun only that command.
 
 ### Scope triggers
 

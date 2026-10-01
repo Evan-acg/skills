@@ -6,11 +6,9 @@ owns what the gate is, how to detect it, and how to set it up when it is missing
 
 ## Status and applicability
 
-The enforced gate is **CRAP**, run locally at the final checkpoint. **Mutation
-testing and CI are deferred**: they are defined here so a project can adopt them
-later, but they are not part of the default local workflow and must not be
-reported as required work. Enable them only when the project explicitly decides
-to.
+The enforced gate is **CRAP**, run by the project's delivery hook and remote CI.
+Skills do not invoke the delivery gate. Mutation testing remains optional and is
+not part of the default skill workflow unless the project explicitly enables it.
 
 ## The gates
 
@@ -103,16 +101,16 @@ the test result for that tree; do not immediately run a second ordinary full
 test command unless the project explicitly requires a separate non-coverage
 run or the coverage runner does not exercise the same suite.
 
-If the project exposes an aggregate gate such as `gates:coverage`, use that
-aggregate as the canonical final command rather than appending its component
-commands again. Run changed-only CRAP after coverage has produced its input, and
-run mutation only when the project's policy calls for it.
+Skills must not invoke an aggregate delivery gate such as `gates:coverage` or
+`gates`. During implementation and at the final skill checkpoint, use the
+project's changed-only quality command. The delivery hook or remote CI owns the
+aggregate gate and its coverage/CRAP sequencing.
 
 During implementation, use the smallest affected test and static checks. A
-failed gate returns to that focused loop. After the final accepted fix, run the
-canonical full gate once, then record the changed-only quality result. Reuse a
-passing result when the production, test, configuration, and gate inputs are
-unchanged; a formatter-only hook result does not invalidate it.
+failed check returns to that focused loop. After the final accepted fix, run the
+changed-only quality command and record its result. Reuse a passing result when
+the production, test, and configuration inputs are unchanged; a formatter-only
+hook result does not invalidate it.
 
 ## CI shape (deferred)
 

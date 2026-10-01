@@ -151,11 +151,12 @@ when its inputs changed or its previous result is invalidated; do not restart
 both axes by default.
 
 Reuse a passing result while the verified tree and command inputs are unchanged.
-Do not rerun a full gate because a review agent finished, because a commit hook
-ran unchanged checks, or because a report needs to be reformatted. A hook that
-changes executable source, tests, or configuration invalidates the relevant
-focused evidence; a hook that changes only formatting does not invalidate
-behavior or type evidence.
+Skills must not invoke the project's delivery gate. Do not rerun changed-quality
+checks because a review agent finished, because a commit hook ran unchanged
+checks, or because a report needs to be reformatted. A hook that changes
+executable source, tests, or configuration invalidates the relevant focused
+evidence; a hook that changes only formatting does not invalidate behavior or
+type evidence.
 
 Keep commands with shared temporary files or generated outputs serial. Parallel
 execution is reserved for read-only checks with independent working state.
@@ -168,7 +169,7 @@ one; the project companion may refine it. Do not invent additional phases.
 
 Treat a coherent batch of changes as the unit of verification. Keep one tight,
 focused feedback loop while the batch is changing, then freeze the batch before
-the final review and full gates.
+the final review and changed-quality check.
 
 1. **During implementation**: run only the smallest deterministic checks that
    can fail on the current change. Prefer affected unit tests, typecheck, lint,
@@ -179,13 +180,12 @@ the final review and full gates.
    together; after those edits, return to focused checks rather than restarting
    the full verification sequence.
 3. **At the final checkpoint**: after the last production, test, or configuration
-   edit, run the repository's canonical full gate once, followed by changed-only
-   quality checks required by §7. If the canonical gate already runs the full
-   suite, do not append a standalone full test command.
+   edit, run the repository's canonical changed-only quality check. Do not run
+   the project's delivery gate from a skill. The delivery gate belongs to the
+   pre-push hook and the remote CI pipeline.
 4. **After commit hooks**: inspect the resulting diff. Reuse the final result if
    hooks changed only formatting or made no effective source/test/config change;
-   rerun focused checks when they changed executable code, and rerun the full
-   gate only when the final gate's inputs changed.
+   rerun focused or changed-quality checks when they changed executable code.
 
 ### Scope triggers
 
@@ -207,21 +207,23 @@ refine it.
 A scope trigger is a condition, not a phase: do not report it as a phase.
 
 The completion criterion is one stable final diff, one qualitative review, one
-final full gate, and recorded evidence for each required scope. A previously
+changed-quality result, and recorded evidence for each required scope. The
+delivery gate is recorded as deferred to pre-push or remote CI. A previously
 passing result remains valid for the same tree; a new run needs a changed input
 or a new failure signal.
 
 ## 7. Apply deterministic quality gates
 
 Read `references/quality-gates.md` before applying this section. It defines the
-gate contract: CRAP is the enforced gate; mutation testing and CI are optional
-and deferred. It also defines the script contract and the detection and setup
-rules.
+gate contract and the delivery boundary: skills run changed-quality checks;
+the project's delivery gate is owned by pre-push and remote CI. It also defines
+the script contract and the detection and setup rules.
 
 When a change adds or alters production behavior, treat metrics as the authority
-on trustworthiness. Use focused checks while repairing a failing gate, then run
-the complete gate once at the final checkpoint. Never weaken production code or
-delete meaningful tests to make a gate pass.
+on trustworthiness. Use focused checks while repairing a failing check, then run
+the changed-quality check at the final checkpoint. Do not invoke the delivery
+gate from a skill. Never weaken production code or delete meaningful tests to
+make a gate pass.
 
 - **Detect.** Find the project's coverage, CRAP, and mutation commands and its
   thresholds. Use them verbatim; do not invent your own. Verify before trusting:
@@ -246,9 +248,9 @@ delete meaningful tests to make a gate pass.
 - **Report.** State the gate command, the scope, the before/after value, and any
   waiver, or state explicitly that the project has no gates configured.
 
-If a gate fails, fix the smallest load-bearing cause and rerun the focused check
-that goes red on that cause. Do not rerun unrelated full suites until the fix is
-stable and the final checkpoint is reached.
+If a check fails, fix the smallest load-bearing cause and rerun the focused check
+that goes red on that cause. Do not rerun unrelated suites or the delivery gate
+from a skill.
 
 These gates supplement §6; they do not replace it.
 

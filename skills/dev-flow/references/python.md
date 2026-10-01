@@ -35,12 +35,13 @@ companion may refine these; do not invent new phases.
 | --- | --- |
 | During implementation (focused check) | `uv run ruff check <file> --fix`, `uv run pytest <file>`, `uv run mypy <file>` |
 | Review checkpoint | inspect the diff |
-| Final checkpoint (gate) | `uv run poe prepush` |
+| Final checkpoint (changed quality) | the repository's changed-only quality command |
 | After commit hooks | inspect the diff; rerun focused checks if hooks changed code |
 
-`poe verify` = `format_check` + `lint` + `typecheck` + `test`. The gate adds
-`test_cov`, CRAP, arch, sec, audit, and deps. While a gate is red, repair with
-focused checks; run the full gate only at the final checkpoint.
+`poe verify` = `format_check` + `lint` + `typecheck` + `test`. The delivery gate
+adds `test_cov`, CRAP, arch, sec, audit, and deps and belongs to the repository's
+pre-push hook or remote CI. While a changed-quality check is red, repair with
+focused checks and rerun only that changed-quality command.
 
 ### Scope triggers
 

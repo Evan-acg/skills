@@ -83,12 +83,12 @@ companion may refine these; do not invent new phases.
 | --- | --- |
 | During implementation (focused check) | `npx eslint <file> --fix`, `npx vitest run <file>`, `npm run typecheck` |
 | Review checkpoint | inspect the diff; run `npm run lint:fsd` and `npm run lint:structure` when slices or directories moved |
-| Final checkpoint (gate) | `npm run prepush` |
+| Final checkpoint (changed quality) | the repository's changed-only quality command |
 | After commit hooks | inspect the diff; rerun focused checks if hooks changed code |
 
-`prepush` runs `format:check`, `lint`, `lint:style`, `lint:structure`, `lint:fsd`,
-`typecheck`, `test`, `test:coverage`, CRAP, and `arch`. While a gate is red, repair
-with focused checks and run the full gate only at the final checkpoint.
+The delivery gate is not a skill command. The repository's `pre-push` hook and
+remote CI own the full gate. While a changed-quality check is red, repair with
+focused checks and rerun only the changed-quality command when the fix is ready.
 
 ### Scope triggers
 
