@@ -135,31 +135,43 @@ the quality gates in §7, not by reading the diff.
 
 ## Verification Ownership
 
-Keep one evidence ledger for the current batch. The main agent owns command
-execution and records each result with the tree identity, command, scope, and
-outcome. Review agents consume that ledger; they do not rerun tests, lint,
-typechecks, coverage, CRAP, dependency checks, or project-specific validation.
-If evidence is missing, they report the gap instead of silently starting a
-second verification loop.
+Keep one evidence ledger for the current batch. Each entry records the tree
+identity, the command or axis, the scope, and the outcome. The main agent owns
+command execution and records each result. Review agents consume that ledger;
+they do not rerun tests, lint, typechecks, coverage, CRAP, dependency checks, or
+project-specific validation. If evidence is missing, they report the gap instead
+of silently starting a second verification loop.
 
-Use one review invocation for one stable batch. When `/code-review` is used,
-its Standards and Spec axes are the sole qualitative review for that batch; the
-main agent performs the diff handoff and aggregates findings, but does not run
-a second copy of either axis. If the review changes production code or the
-spec, rerun only the focused checks affected by that change. Re-run an axis only
-when its inputs changed or its previous result is invalidated; do not restart
-both axes by default.
+Apply the **reuse gate** before running any check or review. Consult the ledger
+and run only when one of these holds:
 
-Reuse a passing result while the verified tree and command inputs are unchanged.
-Skills must not invoke the project's delivery gate. Do not rerun changed-quality
-checks because a review agent finished, because a commit hook ran unchanged
-checks, or because a report needs to be reformatted. A hook that changes
+- the command or axis has not run for this batch;
+- an input it reads changed — source, test, config, environment, or review basis;
+- its previous result was red or blocked;
+- a later edit invalidated the result.
+
+If none holds, reuse the recorded result and move on. A finished review agent, an
+imminent commit, or another loaded skill is not a changed input.
+
+Expand the project's composite commands into the checks they cover, and run each
+covered check at most once per batch. Do not add a check that a passing composite
+already covers while its inputs are unchanged. Keep commands that share temporary
+files or generated outputs serial, in dependency order; reserve parallel
+execution for read-only checks with independent state.
+
+Use one review invocation for one stable batch. When `/code-review` is used, its
+Standards and Spec axes are the sole qualitative review for that batch; the main
+agent performs the diff handoff and aggregates findings, but does not run a second
+copy of either axis. Record each finding with a stable id and a disposition —
+accepted, fixed, rejected with reason, or open. Resolve accepted findings
+together, then recheck only the findings and axes whose inputs changed; do not
+restart the whole review. If a finding stays open with no new input, report it as
+a blocker with the unresolved reason and stop looping; never mark it passed.
+
+Skills must not invoke the project's delivery gate. A commit hook that changes
 executable source, tests, or configuration invalidates the relevant focused
 evidence; a hook that changes only formatting does not invalidate behavior or
 type evidence.
-
-Keep commands with shared temporary files or generated outputs serial. Parallel
-execution is reserved for read-only checks with independent working state.
 
 ## Verification lifecycle
 
@@ -210,7 +222,8 @@ The completion criterion is one stable final diff, one qualitative review, one
 changed-quality result, and recorded evidence for each required scope. The
 delivery gate is recorded as deferred to pre-push or remote CI. A previously
 passing result remains valid for the same tree; a new run needs a changed input
-or a new failure signal.
+or a new failure signal. An unresolved blocker finding ends the loop with an
+explicit report; it is not a reason to rerun the review.
 
 ## 7. Apply deterministic quality gates
 

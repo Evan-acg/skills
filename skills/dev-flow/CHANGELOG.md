@@ -4,6 +4,18 @@ All notable changes to this workflow are recorded here. The `VERSION` file holds
 the current version. Project companions record the version they were last
 synchronized to; see `references/synchronization.md`.
 
+## 1.3.0
+
+- Added the **reuse gate**: before any check or review, run it only on a first
+  run, a changed input, a red/blocked result, or an invalidated result; otherwise
+  reuse the recorded result. A finished review agent, an imminent commit, or
+  another loaded skill is not a changed input.
+- Added composite-command coverage: expand a composite command into the checks it
+  covers and run each covered check at most once per batch; keep shared-temp and
+  generated-output commands serial.
+- Added review finding ids with disposition and point recheck, plus a blocker
+  exit: a finding open with no new input is reported, not rerun or marked passed.
+
 ## 1.2.0
 
 - Added a single evidence ledger owned by the main agent; review agents consume
